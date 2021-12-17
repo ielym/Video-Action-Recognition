@@ -29,7 +29,7 @@ parser.add_argument('--in_channels', default=3, type=int, help='')
 parser.add_argument('--input_size', default=112, type=int, help='')
 parser.add_argument('--clips', default=16, type=int, help='')
 parser.add_argument('--frames_per_clip', default=1, type=int, help='')
-parser.add_argument('--num_workers', default=0.5, type=float, help='')
+parser.add_argument('--num_workers', default=0.1, type=float, help='')
 
 # Train
 parser.add_argument('--device', default='0, 1', type=str, help='cpu, or 0, 1 or 0')

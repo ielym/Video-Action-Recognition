@@ -8,7 +8,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from fastvision.videoRecognition.models import c3d, c3d_bn
 from fastvision.utils.checkpoints import LoadStatedict, SqueezeModel
 from fastvision.loss import CrossEntropyLoss
-from fastvision.utils.sheduler import CosineLR, LinearLR
+from fastvision.utils.sheduler import CosineLR, LinearLR, ExponentialLR
 from fastvision.metrics import Accuracy
 
 from data_gen import create_dataloader
@@ -88,7 +88,8 @@ def Train(args, device):
 
     # ======================= Optimizer ============================
     optimizer = optimizer_fn(model=model, lr=1, weight_decay=args.weight_decay) # here lr have to set to 1
-    scheduler = CosineLR(optimizer=optimizer, steps=args.epochs, initial_lr=args.initial_lr, last_lr=args.last_lr)
+    # scheduler = CosineLR(optimizer=optimizer, steps=args.epochs, initial_lr=args.initial_lr, last_lr=args.last_lr)
+    scheduler = ExponentialLR(optimizer=optimizer, steps=1 * len(train_loader), initial_lr=1e-10, last_lr=10)
 
     est = Fit(
                 model=model,
@@ -106,4 +107,6 @@ def Train(args, device):
                 val_loader=val_loader,
         )
 
-    est.run_epoches()
+    est.find_lr()
+
+    est.trainEpoches()
