@@ -57,12 +57,11 @@ class Fit():
             record_losses.append(smoothed_loss)
             record_lrs.append(math.log10(lr[0]))
 
-
-
-
         record_lrs = np.array(record_lrs)
         record_losses = np.array(record_losses)
         record_metrics = np.array(record_metrics)
+
+        print(record_losses)
 
         plt.plot(record_lrs, record_losses)
         plt.savefig('./loss.png')
