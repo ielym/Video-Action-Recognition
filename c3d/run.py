@@ -29,23 +29,24 @@ parser.add_argument('--in_channels', default=3, type=int, help='')
 parser.add_argument('--input_size', default=112, type=int, help='')
 parser.add_argument('--clips', default=16, type=int, help='')
 parser.add_argument('--frames_per_clip', default=1, type=int, help='')
-parser.add_argument('--num_workers', default=0.1, type=float, help='')
+parser.add_argument('--num_workers', default=0.5, type=float, help='')
 
 # Train
 parser.add_argument('--device', default='0, 1', type=str, help='cpu, or 0, 1 or 0')
-parser.add_argument('--epochs', default=100, type=int, help='')
+parser.add_argument('--epochs', default=50, type=int, help='')
 parser.add_argument('--initial_lr', default=1e-4, type=float, help='')
 parser.add_argument('--last_lr', default=1e-6, type=float, help='')
-parser.add_argument('--weight_decay', default=5e-4, type=float, help='')
+parser.add_argument('--weight_decay', default=1e-2, type=float, help='')
 parser.add_argument('--seed', default=2021, type=int, help='0/1/2/... or None')
 parser.add_argument('--DataParallel', default=True, type=bool, help='')
 parser.add_argument('--DistributedDataParallel', default=False, type=bool, help='')
 parser.add_argument('--SyncBatchNorm', default=True, type=bool, help='')
 parser.add_argument('--pretrained_weights', default=None, type=str, help='')
 
+
 # Inference
 parser.add_argument('--inference_weights', default=r'P:\PythonWorkSpace\last.pth', type=str, help='')
-parser.add_argument('--data_path', default=r'S:\datasets\ucf101\test\videos', type=str, help='absolute path of a img or a folder')
+parser.add_argument('--img_path', default=r'S:\datasets\voc2012\val\images', type=str, help='absolute path of a img or a folder')
 
 # cache
 parser.add_argument('--cache_dir', default='./cache', type=str, help='')

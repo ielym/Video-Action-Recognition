@@ -42,7 +42,7 @@ def loss_fn(device):
 
 def optimizer_fn(model, lr, weight_decay):
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)  # adjust beta1 to momentum
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     # optimizer = torch.optim.SGD(model.parameters(), lr=lr)
     return optimizer
 
@@ -88,8 +88,8 @@ def Train(args, device):
 
     # ======================= Optimizer ============================
     optimizer = optimizer_fn(model=model, lr=1, weight_decay=args.weight_decay) # here lr have to set to 1
-    # scheduler = CosineLR(optimizer=optimizer, steps=args.epochs, initial_lr=args.initial_lr, last_lr=args.last_lr)
-    scheduler = ExponentialLR(optimizer=optimizer, steps=1 * len(train_loader), initial_lr=1e-10, last_lr=10)
+    scheduler = CosineLR(optimizer=optimizer, steps=args.epochs * len(train_loader), initial_lr=args.initial_lr, last_lr=args.last_lr)
+    # scheduler = ExponentialLR(optimizer=optimizer, steps=1 * len(train_loader), initial_lr=2e-6, last_lr=1e-4)
 
     est = Fit(
                 model=model,
@@ -107,6 +107,6 @@ def Train(args, device):
                 val_loader=val_loader,
         )
 
-    est.find_lr()
+    # est.find_lr()
 
     est.trainEpoches()
