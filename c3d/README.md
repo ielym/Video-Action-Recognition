@@ -6,7 +6,7 @@
 
 # Test
 
-| Model                                                        | Metrics | ACC%  | Dataset                      | Weights                                                      |
+| Model                                                        | Metrics | ACC%  | Dataset                      | Checkpoints                                                      |
 | ------------------------------------------------------------ | ------- | ----- | ---------------------------- | ------------------------------------------------------------ |
 | [C3D-BN](https://github.com/ielym/Video-Action-Recognition/tree/c3d-bn/c3d) | Top-1   | 45.58 | UCF-101 (Train from scratch) | [Baidu (5555)](https://pan.baidu.com/s/1e_E6TEuKT2GoWCFCnSA9PQ ) |
 |                                                              |         |       |                              |                                                              |
