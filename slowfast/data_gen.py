@@ -37,7 +37,7 @@ class BaseDataset(Dataset):
             self.input_width = input_size[1]
 
         self.augmentation = Augmentation([
-                                Resize(size=256, p=1.0),
+                                Resize(size=256, resize_by='shorter', p=1.0),
                                 RandomCrop(size=(self.input_height, self.input_width), p=1.0),
                                 HorizontalFlip(p=0.5),
                                 BGR2RGB(p=1.0),
