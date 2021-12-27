@@ -1,4 +1,4 @@
-data_root: '/home/ymluo/datasets/kinetics400'
+data_root: '/app/datasets/kinetics400'
 train_dir: 'train'
 val_dir: 'val'
 test_dir: 'test'
