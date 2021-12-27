@@ -22,6 +22,8 @@ class Fit():
         self.test_loader = test_loader
         self.scheduler = scheduler
 
+
+
     def find_lr(self, beta=0.98):
 
         avg_loss = 0
@@ -85,8 +87,8 @@ class Fit():
                 with torch.no_grad():
                     self.model.eval()
                     losses, metrics, _ = self._run_epoch(epoch, self.val_loader, mode='val')
-                    val_losses.append(sum(losses) / len(losses))
-                    val_metrics.append(sum(metrics) / len(metrics))
+                    val_losses.append(sum(losses))
+                    val_metrics.append(sum(metrics))
                     print(f'Val Loss : {sum(losses) / len(losses)}, Val Metric : {sum(metrics) / len(metrics)}')
 
             ckpt = {
@@ -96,18 +98,12 @@ class Fit():
 
             SaveModel(ckpt, 'last.pth', weights_only=True)
 
-        with open('train_log.txt', 'a') as f:
-            f.write(f'{train_losses}\n')
-            f.write(f'{train_metrics}\n')
-            f.write(f'{train_lrs}\n')
-            f.write(f'{val_losses}\n')
-            f.write(f'{val_metrics}\n')
 
     def _run_epoch(self, epoch, data_loader, mode='train'):
         assert data_loader, 'data_loader can not be None'
 
         total_loss = []
-        total_metric = []
+        tota_metric = []
         group_lrs = []
 
         with tqdm(data_loader) as t:
@@ -134,8 +130,8 @@ class Fit():
                 t.set_postfix(batch=batch_idx + 1, loss=loss.item(), metric=metric.item(), lrs=[group['lr'] for group in self.optimizer.state_dict()['param_groups']])
 
                 total_loss.append(loss.item())
-                total_metric.append(metric.item())
+                tota_metric.append(metric.item())
 
                 group_lrs.append([group['lr'] for group in self.optimizer.state_dict()['param_groups']])
 
-        return total_loss, total_metric, group_lrs
+        return total_loss, tota_metric, group_lrs

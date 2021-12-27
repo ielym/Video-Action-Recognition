@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 import sys
 sys.path.append(r'../')
-sys.path.append(r'../../')
-sys.path.append(r'../../../')
 
 import argparse
 import os
 import random
 import multiprocessing
-
 
 import numpy as np
 import torch
@@ -25,19 +22,19 @@ parser = argparse.ArgumentParser(description='FastVision')
 parser.add_argument('--mode', default='Train', choices=['Train', 'Test'], type=str, help='')
 
 # Data generation
-parser.add_argument('--data_yaml', default=r'./data/kinetics-400.yaml', type=str, help='')
-parser.add_argument('--batch_size', default=256, help='')
+parser.add_argument('--data_yaml', default=r'./data/ucf101.yaml', type=str, help='')
+parser.add_argument('--batch_size', default=128, help='')
 parser.add_argument('--in_channels', default=3, type=int, help='')
 parser.add_argument('--input_size', default=112, type=int, help='')
 parser.add_argument('--clips', default=16, type=int, help='')
 parser.add_argument('--frames_per_clip', default=1, type=int, help='')
-parser.add_argument('--num_workers', default=0.6, type=float, help='')
+parser.add_argument('--num_workers', default=0.5, type=float, help='')
 
 # Train
-parser.add_argument('--device', default='0, 1, 2, 3', type=str, help='cpu, or 0, 1 or 0')
+parser.add_argument('--device', default='0, 1', type=str, help='cpu, or 0, 1 or 0')
 parser.add_argument('--epochs', default=50, type=int, help='')
-parser.add_argument('--initial_lr', default=1e-3, type=float, help='')
-parser.add_argument('--last_lr', default=1e-7, type=float, help='')
+parser.add_argument('--initial_lr', default=1e-4, type=float, help='')
+parser.add_argument('--last_lr', default=1e-6, type=float, help='')
 parser.add_argument('--weight_decay', default=1e-2, type=float, help='')
 parser.add_argument('--seed', default=2021, type=int, help='0/1/2/... or None')
 parser.add_argument('--DataParallel', default=True, type=bool, help='')

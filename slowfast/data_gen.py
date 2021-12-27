@@ -48,6 +48,7 @@ class BaseDataset(Dataset):
     def load_video(self, video_path):
 
         cap = cv2.VideoCapture(video_path)
+
         sampling_frames = randomClipSampling(cap, clips=self.clips, frames_per_clip=self.frames_per_clip)
 
         return sampling_frames
@@ -58,37 +59,24 @@ class BaseDataset(Dataset):
         video_path = sample[0]
         category_idx = sample[1]
 
-        cache_path = os.path.join('./cache/cache_data', f'{os.path.basename(video_path)}.npy')
-        # if os.path.exists(cache_path):
-        ori_frames = np.load(cache_path)
+        # ======================================== process image ========================================
+        ori_frames = self.load_video(video_path)
+
         frames = []
         self.augmentation.lock_prob()
         for frame_idx in range(len(ori_frames)):
             frames.append(np.expand_dims(self.augmentation(ori_frames[frame_idx, ...]), 0))
         self.augmentation.unlock_prob()
+
         frames = np.concatenate(frames, 0) # (16, 112, 112, 3)
+
+        # ======================================== process label ========================================
+        labels = torch.tensor(category_idx)
+
         frames = frames.transpose([3, 0, 1, 2])
         frames = np.ascontiguousarray(frames)
         frames = frames.astype(np.float32)
         frames = torch.from_numpy(frames)
-        # ======================================== process image ========================================
-        # else:
-        #     ori_frames = self.load_video(video_path)
-        #     frames = []
-        #     self.augmentation.lock_prob()
-        #     for frame_idx in range(len(ori_frames)):
-        #         frames.append(np.expand_dims(self.augmentation(ori_frames[frame_idx, ...]), 0))
-        #     self.augmentation.unlock_prob()
-        #
-        #     frames = np.concatenate(frames, 0) # (16, 112, 112, 3)
-        #     frames = frames.transpose([3, 0, 1, 2])
-        #     frames = np.ascontiguousarray(frames)
-        #     frames = frames.astype(np.float32)
-        #     np.save(cache_path, frames)
-        #     frames = torch.from_numpy(frames)
-
-        # ======================================== process label ========================================
-        labels = torch.tensor(category_idx)
 
         return frames, labels
 
@@ -104,14 +92,16 @@ def load_samples(data_dir, prefix, num_workers, cache, use_cache):
     videos_dir = os.path.join(data_dir, 'videos')
     labels_path = os.path.join(data_dir, 'labels.txt')
 
+    # videos_dir = r'\home\ymluo\datasets\train\videos'
+    # labels_path = r'\home\ymluo\datasets\train\labels.txt'
+
     with open(labels_path, 'r') as f:
         lines = f.readlines()
 
     samples = []
     for line in tqdm.tqdm(lines, desc=f'Extract {prefix} dataset '):
         video_name, category_idx = line.strip().split()
-        if os.path.exists(os.path.join('./cache/cache_data/', f'{video_name}.npy')):
-            samples.append((os.path.join(videos_dir, video_name), int(category_idx)))
+        samples.append((os.path.join(videos_dir, video_name), int(category_idx)))
 
     if cache:
         with open(os.path.join(cache, f'{prefix}.txt'), 'w') as f:
@@ -123,7 +113,6 @@ def load_samples(data_dir, prefix, num_workers, cache, use_cache):
 def create_dataloader(prefix, data_dir, batch_size, clips, frames_per_clip, input_size, device, num_workers=0, cache='./cache', use_cache=False, shuffle=True, pin_memory=True, drop_last=False):
 
     samples = load_samples(data_dir, prefix, num_workers, cache, use_cache)
-    # preprocess(samples, clips, frames_per_clip)
 
     dataset = BaseDataset(samples, clips, frames_per_clip, input_size)
 
@@ -132,43 +121,11 @@ def create_dataloader(prefix, data_dir, batch_size, clips, frames_per_clip, inpu
                 batch_size=batch_size,
                 shuffle=shuffle,
                 pin_memory=pin_memory,
-                # sampler=distributed.DistributedSampler(dataset, shuffle=shuffle),
+                # sampler=distributed.DistributedSampler(datasets, shuffle=shuffle),
                 drop_last=drop_last,
                 num_workers=num_workers if device.type != 'cpu' else 0,
             )
 
     return loader
 
-def save_2_npy(video_path, clips, frames_per_clip):
-    cap = cv2.VideoCapture(video_path)
-    sampling_frames = randomClipSampling(cap, clips=clips, frames_per_clip=frames_per_clip)
 
-    frames = []
-    for frame in sampling_frames:
-        ori_height, ori_width = frame.shape[:2]
-        ratio = 256 / max(ori_height, ori_width)
-        target_height, target_width = int(ori_height * ratio), int(ori_width * ratio)
-        frame = cv2.resize(frame, (target_width, target_height))
-        frames.append(np.expand_dims(frame, 0))
-    frames = np.concatenate(frames, 0).astype(np.uint8)  # (16, 112, 112, 3)
-
-    cache_path = os.path.join('./cache/cache_data', f'{os.path.basename(video_path)}.npy')
-    np.save(cache_path, frames)
-
-
-def preprocess(samples, clips, frames_per_clip):
-    pool = multiprocessing.Pool(8)
-
-    # ------------- tqdm with multiprocessing -------------
-    pbar = tqdm.tqdm(total=len(samples))
-    pbar.set_description(f'Process : ')
-    update_tqdm = lambda *args: pbar.update()
-    # -----------------------------------------------------
-
-    for sample in samples:
-        video_path = sample[0]
-        pool.apply_async(save_2_npy, args=(video_path, clips, frames_per_clip), callback=update_tqdm)
-
-    pool.close()
-    pool.join()
-    pbar.close()
