@@ -74,15 +74,15 @@ class BaseDataset(Dataset):
         frames = frames.transpose([3, 0, 1, 2])
         frames = np.ascontiguousarray(frames)
         frames = frames.astype(np.float32)
-        frames = torch.from_numpy(frames)
+        frames = torch.from_numpy(frames) # [3, 64, 224, 224]
 
-        print(frames.size)
+        slow_frames = frames[:, ::self.tau, ...]
+        fast_frames = frames[:, ::int(self.tau / self.alpha), ...]
 
         # ======================================== process label ========================================
         labels = torch.tensor(category_idx)
 
-
-        return frames, labels
+        return slow_frames, fast_frames, labels
 
 def load_samples(data_dir, prefix, num_workers, cache, use_cache):
 

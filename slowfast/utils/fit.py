@@ -107,12 +107,13 @@ class Fit():
         group_lrs = []
 
         with tqdm(data_loader) as t:
-            for batch_idx, (images, labels) in enumerate(t):
+            for batch_idx, (slow_frames, fast_frames, labels) in enumerate(t):
                 if self.device.type == 'cuda':
-                    images = images.cuda(non_blocking=True)
+                    slow_frames = slow_frames.cuda(non_blocking=True)
+                    fast_frames = fast_frames.cuda(non_blocking=True)
                     labels = labels.cuda(non_blocking=True)
 
-                pred = self.model(images)
+                pred = self.model(slow_frames, fast_frames)
 
                 metric = self.metric(pred, labels)
 
