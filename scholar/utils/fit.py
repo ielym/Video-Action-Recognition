@@ -110,17 +110,16 @@ class Fit():
         group_lrs = []
 
         with tqdm(data_loader) as t:
-            for batch_idx, (slow_frames, fast_frames, labels) in enumerate(t):
+            for batch_idx, (frames, labels) in enumerate(t):
                 if self.device.type == 'cuda':
-                    slow_frames = slow_frames.cuda(non_blocking=True)
-                    fast_frames = fast_frames.cuda(non_blocking=True)
+                    frames = frames.cuda(non_blocking=True)
                     labels = labels.cuda(non_blocking=True)
 
                 if mode == 'train':
                     self.optimizer.zero_grad()
 
                 with autocast():
-                    pred = self.model(slow_frames, fast_frames)
+                    pred = self.model(frames)
                     metric = self.metric(pred, labels)
                     loss = self.loss(pred, labels)
 
