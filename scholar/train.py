@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from fastvision.videoRecognition.models import slowfast_resnet50
+from fastvision.videoRecognition.models import resnet50_3d
 from fastvision.utils.checkpoints import LoadStatedict, SqueezeModel
 from fastvision.loss import CrossEntropyLoss
 from fastvision.utils.sheduler import CosineLR, LinearLR, ExponentialLR
@@ -22,10 +22,10 @@ def dataloader_fn(args, device):
     assert (num_classes == len(category_names)), f"num_classes {num_classes} must equal len(category_names) {len(category_names)}"
 
     train_dir = os.path.join(data_dict['data_root'], data_dict['train_dir'])
-    train_loader = create_dataloader(prefix='train', data_dir=train_dir, batch_size=args.batch_size, frames=args.frames, tau=args.tau, alpha=args.alpha, beta=args.beta, input_size=args.input_size, num_workers=args.num_workers, device=device, cache=args.cache_dir, use_cache=args.use_data_cache, shuffle=True, pin_memory=True, drop_last=False)
+    train_loader = create_dataloader(prefix='train', data_dir=train_dir, batch_size=args.batch_size, frames=args.frames, input_size=args.input_size, num_workers=args.num_workers, device=device, cache=args.cache_dir, use_cache=args.use_data_cache, shuffle=True, pin_memory=True, drop_last=False)
 
     val_dir = os.path.join(data_dict['data_root'], data_dict['val_dir'])
-    val_loader = create_dataloader(prefix='val', data_dir=val_dir, batch_size=args.batch_size, frames=args.frames, tau=args.tau, alpha=args.alpha, beta=args.beta, input_size=args.input_size, num_workers=args.num_workers, device=device, cache=args.cache_dir, use_cache=args.use_data_cache, shuffle=True, pin_memory=True, drop_last=False)
+    val_loader = create_dataloader(prefix='val', data_dir=val_dir, batch_size=args.batch_size, frames=args.frames, input_size=args.input_size, num_workers=args.num_workers, device=device, cache=args.cache_dir, use_cache=args.use_data_cache, shuffle=True, pin_memory=True, drop_last=False)
 
     # show_dataset(prefix='train', data_dir=train_dir, category_names=category_names, num_workers=num_workers, cache=cache, use_cache=use_cache)
 
@@ -46,7 +46,7 @@ def optimizer_fn(model, lr, weight_decay):
 
 def model_fn(args, device):
 
-    model = slowfast_resnet50(in_channels=args.in_channels, num_classes=args.num_classes, alpha=args.alpha, beta=args.beta)
+    model = resnet50_3d(in_channels=args.in_channels, num_classes=args.num_classes)
 
     if args.pretrained_weights:
         model = LoadStatedict(model=model, weights=args.pretrained_weights, device=device, strict=False)

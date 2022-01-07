@@ -19,14 +19,11 @@ from fastvision.datasets.common.augmentation import Augmentation, HorizontalFlip
 
 
 class BaseDataset(Dataset):
-    def __init__(self, samples, frames, tau, alpha, beta, input_size):
+    def __init__(self, samples, frames, input_size):
 
         self.samples = samples
 
         self.frames = frames
-        self.tau = tau
-        self.alpha = alpha
-        self.beta = beta
 
         self.input_size = input_size
         if isinstance(input_size, int):
@@ -51,7 +48,7 @@ class BaseDataset(Dataset):
 
         cap = cv2.VideoCapture(video_path)
 
-        sampling_frames = consecutiveSampling(cap, frames=self.frames * self.tau)
+        sampling_frames = randomClipSampling(cap, clips=self.frames, frames_per_clip=1)
 
         return sampling_frames
 
@@ -76,13 +73,11 @@ class BaseDataset(Dataset):
         frames = frames.astype(np.float32)
         frames = torch.from_numpy(frames) # [3, 64, 224, 224]
 
-        slow_frames = frames[:, ::self.tau, ...]
-        fast_frames = frames[:, ::int(self.tau / self.alpha), ...]
 
         # ======================================== process label ========================================
         labels = torch.tensor(category_idx)
 
-        return slow_frames, fast_frames, labels
+        return frames, labels
 
 def load_samples(data_dir, prefix, num_workers, cache, use_cache):
 
@@ -147,12 +142,12 @@ def preprocess(samples):
     pool.join()
     pbar.close()
 
-def create_dataloader(prefix, data_dir, batch_size, frames, tau, alpha, beta, input_size, device, num_workers=0, cache='./cache', use_cache=False, shuffle=True, pin_memory=True, drop_last=False):
+def create_dataloader(prefix, data_dir, batch_size, frames, input_size, device, num_workers=0, cache='./cache', use_cache=False, shuffle=True, pin_memory=True, drop_last=False):
 
     samples = load_samples(data_dir, prefix, num_workers, cache, use_cache)
-    preprocess(samples)
+    # preprocess(samples)
 
-    dataset = BaseDataset(samples, frames, tau, alpha, beta, input_size)
+    dataset = BaseDataset(samples, frames, input_size)
 
     loader = DataLoader(
                 dataset=dataset,
