@@ -26,11 +26,11 @@ parser.add_argument('--mode', default='Train', choices=['Train', 'Test'], type=s
 
 # Data generation
 parser.add_argument('--data_yaml', default=r'./data/kinetics-400.yaml', type=str, help='')
-parser.add_argument('--batch_size', default=16, help='')
+parser.add_argument('--batch_size', default=32, help='')
 parser.add_argument('--in_channels', default=3, type=int, help='')
 parser.add_argument('--frames', default=16, type=int, help='input frames')
 parser.add_argument('--input_size', default=224, type=int, help='')
-parser.add_argument('--num_workers', default=0, type=float, help='')
+parser.add_argument('--num_workers', default=0.3, type=float, help='')
 
 # Train
 parser.add_argument('--device', default='2, 3', type=str, help='cpu, or 0, 1 or 0')
