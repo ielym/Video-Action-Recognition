@@ -26,17 +26,17 @@ parser.add_argument('--mode', default='Train', choices=['Train', 'Test'], type=s
 
 # Data generation
 parser.add_argument('--data_yaml', default=r'./data/kinetics-400.yaml', type=str, help='')
-parser.add_argument('--batch_size', default=256, help='')
+parser.add_argument('--batch_size', default=32, help='')
 parser.add_argument('--in_channels', default=3, type=int, help='')
 parser.add_argument('--frames', default=4, type=int, help='T : frames for slow pathway')
 parser.add_argument('--tau', default=16, type=int, help='the sampling step for slow pathway')
 parser.add_argument('--alpha', default=8, type=int, help='the sampling step for fast pathway = int(tau / alpha) ')
 parser.add_argument('--beta', default=1/8, type=float, help='the channel capacity for fast pathway = int(channel * beta) ')
 parser.add_argument('--input_size', default=224, type=int, help='')
-parser.add_argument('--num_workers', default=0.6, type=float, help='')
+parser.add_argument('--num_workers', default=0.3, type=float, help='')
 
 # Train
-parser.add_argument('--device', default='0, 1, 2, 3', type=str, help='cpu, or 0, 1 or 0')
+parser.add_argument('--device', default='1, 2', type=str, help='cpu, or 0, 1 or 0')
 parser.add_argument('--epochs', default=50, type=int, help='')
 parser.add_argument('--initial_lr', default=1e-3, type=float, help='')
 parser.add_argument('--last_lr', default=1e-7, type=float, help='')
@@ -54,7 +54,7 @@ parser.add_argument('--img_path', default=r'S:\datasets\voc2012\val\images', typ
 
 # cache
 parser.add_argument('--cache_dir', default='./cache', type=str, help='')
-parser.add_argument('--use_data_cache', default=False, type=bool, help='')
+parser.add_argument('--use_data_cache', default=True, type=bool, help='')
 
 
 args, unknown = parser.parse_known_args()

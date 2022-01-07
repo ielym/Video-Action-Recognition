@@ -102,7 +102,9 @@ def load_samples(data_dir, prefix, num_workers, cache, use_cache):
     samples = []
     for line in tqdm.tqdm(lines, desc=f'Extract {prefix} dataset '):
         video_name, category_idx = line.strip().split()
-        samples.append((os.path.join(videos_dir, video_name), int(category_idx)))
+        cap = cv2.VideoCapture(os.path.join(videos_dir, video_name))
+        if cap.get(cv2.CAP_PROP_FRAME_COUNT) >= 128:
+            samples.append((os.path.join(videos_dir, video_name), int(category_idx)))
 
     if cache:
         with open(os.path.join(cache, f'{prefix}.txt'), 'w') as f:
@@ -111,9 +113,44 @@ def load_samples(data_dir, prefix, num_workers, cache, use_cache):
 
     return samples
 
+def save_2_npy(video_path):
+    cap = cv2.VideoCapture(video_path)
+    sampling_frames = consecutiveSampling(cap, frames=64)
+
+    frames = []
+    for frame in sampling_frames:
+        ori_height, ori_width = frame.shape[:2]
+        ratio = 256 / min(ori_height, ori_width)
+        target_height, target_width = int(ori_height * ratio), int(ori_width * ratio)
+        frame = cv2.resize(frame, (target_width, target_height))
+        frames.append(np.expand_dims(frame, 0))
+    frames = np.concatenate(frames, 0).astype(np.uint8)  # (16, 112, 112, 3)
+
+    cache_path = os.path.join('./cache/cache_data', f'{os.path.basename(video_path)}.npy')
+    np.save(cache_path, frames)
+
+
+def preprocess(samples):
+    pool = multiprocessing.Pool(4)
+
+    # ------------- tqdm with multiprocessing -------------
+    pbar = tqdm.tqdm(total=len(samples))
+    pbar.set_description(f'Process : ')
+    update_tqdm = lambda *args: pbar.update()
+    # -----------------------------------------------------
+
+    for sample in samples:
+        video_path = sample[0]
+        pool.apply_async(save_2_npy, args=(video_path, ), callback=update_tqdm)
+
+    pool.close()
+    pool.join()
+    pbar.close()
+
 def create_dataloader(prefix, data_dir, batch_size, frames, tau, alpha, beta, input_size, device, num_workers=0, cache='./cache', use_cache=False, shuffle=True, pin_memory=True, drop_last=False):
 
     samples = load_samples(data_dir, prefix, num_workers, cache, use_cache)
+    preprocess(samples)
 
     dataset = BaseDataset(samples, frames, tau, alpha, beta, input_size)
 

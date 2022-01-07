@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from matplotlib import pyplot as plt
 import math
+from torch.cuda.amp import autocast as autocast, GradScaler
 
 from tqdm import tqdm, trange
 from fastvision.utils.checkpoints import SaveModel
@@ -74,10 +75,12 @@ class Fit():
         val_losses = []
         val_metrics = []
 
+        scaler = GradScaler()
+
         for epoch in range(self.start_epoch, self.end_epoch):
 
             self.model.train()
-            losses, metrics, group_lrs = self._run_epoch(epoch, self.train_loader, mode='train')
+            losses, metrics, group_lrs = self._run_epoch(epoch, self.train_loader, scaler, mode='train')
             train_losses.append(sum(losses) / len(losses))
             train_metrics.append(sum(metrics) / len(metrics))
             train_lrs.extend(group_lrs)
@@ -86,7 +89,7 @@ class Fit():
             if self.val_loader:
                 with torch.no_grad():
                     self.model.eval()
-                    losses, metrics, _ = self._run_epoch(epoch, self.val_loader, mode='val')
+                    losses, metrics, _ = self._run_epoch(epoch, self.val_loader, scaler, mode='val')
                     val_losses.append(sum(losses))
                     val_metrics.append(sum(metrics))
                     print(f'Val Loss : {sum(losses) / len(losses)}, Val Metric : {sum(metrics) / len(metrics)}')
@@ -99,7 +102,7 @@ class Fit():
             SaveModel(ckpt, 'last.pth', weights_only=True)
 
 
-    def _run_epoch(self, epoch, data_loader, mode='train'):
+    def _run_epoch(self, epoch, data_loader, scaler, mode='train'):
         assert data_loader, 'data_loader can not be None'
 
         total_loss = []
@@ -113,18 +116,20 @@ class Fit():
                     fast_frames = fast_frames.cuda(non_blocking=True)
                     labels = labels.cuda(non_blocking=True)
 
-                pred = self.model(slow_frames, fast_frames)
-
-                metric = self.metric(pred, labels)
-
                 if mode == 'train':
                     self.optimizer.zero_grad()
 
-                loss = self.loss(pred, labels)
+                with autocast():
+                    pred = self.model(slow_frames, fast_frames)
+                    metric = self.metric(pred, labels)
+                    loss = self.loss(pred, labels)
 
                 if mode == 'train':
-                    loss.backward()
-                    self.optimizer.step()
+                    scaler.scale(loss).backward()
+                    scaler.step(self.optimizer)
+                    scaler.update()
+                    # loss.backward()
+                    # self.optimizer.step()
                     self.scheduler.step()
 
                 t.set_description(f"{mode} Epoch {epoch + 1}")
