@@ -40,7 +40,7 @@ def load_samples(data_dir, prefix, cache):
     for line in tqdm.tqdm(lines, desc=f'Extract {prefix} dataset '):
         video_name, category_idx = line.strip().split()
         cap = cv2.VideoCapture(os.path.join(videos_dir, video_name))
-        if cap.get(cv2.CAP_PROP_FRAME_COUNT) >= 128:
+        if cap.get(cv2.CAP_PROP_FRAME_COUNT) >= 32:
             samples.append((os.path.join(videos_dir, video_name), int(category_idx)))
 
     if cache:
@@ -72,7 +72,8 @@ if __name__ == '__main__':
     cache_dir = r'./cache'
     num_works = 8
 
-    os.makedirs('./cache/cache_data')
+    if not os.path.exists('../cache/cache_data'):
+        os.makedirs('../cache/cache_data')
 
     samples = load_samples(data_dir, 'train', cache_dir)
     preprocess(samples, num_works)
