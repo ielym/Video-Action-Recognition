@@ -42,7 +42,7 @@ parser.add_argument('--seed', default=2021, type=int, help='0/1/2/... or None')
 parser.add_argument('--DataParallel', default=True, type=bool, help='')
 parser.add_argument('--DistributedDataParallel', default=False, type=bool, help='')
 parser.add_argument('--SyncBatchNorm', default=True, type=bool, help='')
-parser.add_argument('--pretrained_weights', default=None, type=str, help='')
+parser.add_argument('--pretrained_weights', default='/app/zoos/resnet50_3d.pth', type=str, help='')
 
 
 # Inference
