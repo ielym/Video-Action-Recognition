@@ -28,7 +28,7 @@ def load_samples(data_dir, prefix, cache_dir, num_works):
         lines = f.readlines()
 
     samples = []
-    for line in lines:
+    for line in tqdm.tqdm(lines):
         video_name, category_idx = line.strip().split()
         video_path = os.path.join(videos_dir, video_name)
 
