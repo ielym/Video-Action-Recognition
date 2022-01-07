@@ -12,6 +12,48 @@ import os
 
 from fastvision.datasets.common.video_sampler import randomClipSampling, averageSampling, randomSampling, consecutiveSampling
 
+def check_video(video_path, category_idx, samples):
+    cap = cv2.VideoCapture(video_path)
+
+    if cap.get(cv2.CAP_PROP_FRAME_COUNT) >= 32:
+        samples.append((video_path, int(category_idx)))
+
+def load_samples(data_dir, prefix, cache):
+
+    videos_dir = os.path.join(data_dir, 'videos')
+    labels_path = os.path.join(data_dir, 'labels.txt')
+
+    with open(labels_path, 'r') as f:
+        lines = f.readlines()
+
+    pool = multiprocessing.Pool(num_works)
+
+    # ------------- tqdm with multiprocessing -------------
+    pbar = tqdm.tqdm(total=len(lines))
+    pbar.set_description(f'Load and Check Samples : ')
+    update_tqdm = lambda *args: pbar.update()
+    # -----------------------------------------------------
+
+    mgr = multiprocessing.Manager()
+    ret_samples = mgr.list()
+
+    for line in lines:
+        video_name, category_idx = line.strip().split()
+        video_path = os.path.join(videos_dir, video_name)
+
+        pool.apply_async(check_video, args=(video_path, category_idx, ret_samples), callback=update_tqdm)
+
+    pool.close()
+    pool.join()
+    pbar.close()
+
+    if cache:
+        with open(os.path.join(cache, f'{prefix}.txt'), 'w') as f:
+            f.write(str(ret_samples))
+        print(f'Save {prefix} data to cache {cache} {prefix}.txt')
+
+    return ret_samples
+
 def save_2_npy(video_path):
     cap = cv2.VideoCapture(video_path)
     sampling_frames = consecutiveSampling(cap, frames=64)
@@ -27,28 +69,6 @@ def save_2_npy(video_path):
 
     cache_path = os.path.join('./cache/cache_data', f'{os.path.basename(video_path)}.npy')
     np.save(cache_path, frames)
-
-def load_samples(data_dir, prefix, cache):
-
-    videos_dir = os.path.join(data_dir, 'videos')
-    labels_path = os.path.join(data_dir, 'labels.txt')
-
-    with open(labels_path, 'r') as f:
-        lines = f.readlines()
-
-    samples = []
-    for line in tqdm.tqdm(lines, desc=f'Extract {prefix} dataset '):
-        video_name, category_idx = line.strip().split()
-        cap = cv2.VideoCapture(os.path.join(videos_dir, video_name))
-        if cap.get(cv2.CAP_PROP_FRAME_COUNT) >= 32:
-            samples.append((os.path.join(videos_dir, video_name), int(category_idx)))
-
-    if cache:
-        with open(os.path.join(cache, f'{prefix}.txt'), 'w') as f:
-            f.write(str(samples))
-        print(f'Save {prefix} data to cache {cache} {prefix}.txt')
-
-    return samples
 
 def preprocess(samples, num_works):
     pool = multiprocessing.Pool(num_works)
@@ -69,7 +89,7 @@ def preprocess(samples, num_works):
 
 if __name__ == '__main__':
     data_dir = r'/app/datasets/kinetics400/train'
-    cache_dir = r'./cache'
+    cache_dir = r'../cache'
     num_works = 8
 
     if not os.path.exists('../cache/cache_data'):
