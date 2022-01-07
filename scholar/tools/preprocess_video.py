@@ -90,7 +90,7 @@ def preprocess(samples, num_works):
 if __name__ == '__main__':
     data_dir = r'/app/datasets/kinetics400/train'
     cache_dir = r'../cache'
-    num_works = 8
+    num_works = 48
 
     if not os.path.exists('../cache/cache_data'):
         os.makedirs('../cache/cache_data')
