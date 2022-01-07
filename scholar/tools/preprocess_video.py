@@ -18,7 +18,7 @@ def check_video(video_path, category_idx, samples):
     if cap.get(cv2.CAP_PROP_FRAME_COUNT) >= 32:
         samples.append((video_path, int(category_idx)))
 
-def load_samples(data_dir, prefix, cache):
+def load_samples(data_dir, prefix, cache_dir, num_works):
 
     videos_dir = os.path.join(data_dir, 'videos')
     labels_path = os.path.join(data_dir, 'labels.txt')
@@ -95,6 +95,6 @@ if __name__ == '__main__':
     if not os.path.exists('../cache/cache_data'):
         os.makedirs('../cache/cache_data')
 
-    samples = load_samples(data_dir, 'train', cache_dir)
+    samples = load_samples(data_dir, 'train', cache_dir, num_works)
     preprocess(samples, num_works)
 
