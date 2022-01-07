@@ -6,6 +6,7 @@ sys.path.append(r'../../../../')
 
 import numpy as np
 import multiprocessing
+import threading
 import tqdm
 import cv2
 import os
@@ -26,33 +27,20 @@ def load_samples(data_dir, prefix, cache_dir, num_works):
     with open(labels_path, 'r') as f:
         lines = f.readlines()
 
-    pool = multiprocessing.Pool(num_works)
-
-    # ------------- tqdm with multiprocessing -------------
-    pbar = tqdm.tqdm(total=len(lines))
-    pbar.set_description(f'Load and Check Samples : ')
-    update_tqdm = lambda *args: pbar.update()
-    # -----------------------------------------------------
-
-    mgr = multiprocessing.Manager()
-    ret_samples = mgr.list()
-
+    samples = []
     for line in lines:
         video_name, category_idx = line.strip().split()
         video_path = os.path.join(videos_dir, video_name)
 
-        pool.apply_async(check_video, args=(video_path, category_idx, ret_samples), callback=update_tqdm)
+        p = threading.Thread(target=check_video, args=(video_path, category_idx, samples))
+        p.start()
 
-    pool.close()
-    pool.join()
-    pbar.close()
+    if cache_dir:
+        with open(os.path.join(cache_dir, f'{prefix}.txt'), 'w') as f:
+            f.write(str(samples))
+        print(f'Save {prefix} data to cache {cache_dir} {prefix}.txt')
 
-    if cache:
-        with open(os.path.join(cache, f'{prefix}.txt'), 'w') as f:
-            f.write(str(ret_samples))
-        print(f'Save {prefix} data to cache {cache} {prefix}.txt')
-
-    return ret_samples
+    return samples
 
 def save_2_npy(video_path):
     cap = cv2.VideoCapture(video_path)
