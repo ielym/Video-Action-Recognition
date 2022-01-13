@@ -16,15 +16,18 @@ from utils.fit import Fit
 
 def dataloader_fn(args, device):
     data_dict = yaml.safe_load(open(args.data_yaml, 'r'))
-
+    # print('===========', args.local_rank, device, torch.cuda.current_device())
     device_id = args.local_rank
     shards_dict = eval(os.environ['FASTVISON_SHARDS'])
-    shard_id = shards_dict[device_id]
+    # shard_id = shards_dict[device_id]
+    shard_id = args.local_rank
     num_shards = len(shards_dict.keys())
 
     num_classes = data_dict['num_classes']
     category_names = data_dict['categories']
     assert (num_classes == len(category_names)), f"num_classes {num_classes} must equal len(category_names) {len(category_names)}"
+    print(f'local_rank : {args.local_rank}, device_id : {device_id}, shard_id : {shard_id}, {torch.cuda.current_device()}')
+    input('||' * 50)
 
     train_dir = os.path.join(data_dict['data_root'], data_dict['train_dir'])
     train_loader = create_dataloader(prefix='train', data_dir=train_dir, batch_size=args.batch_size, frames=args.frames, input_size=args.input_size, device_id=device_id, shard_id=shard_id, num_shards=num_shards, num_workers=args.num_workers, cache=args.cache_dir)
