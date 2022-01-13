@@ -1,4 +1,4 @@
-data_root: 'S:\datasets\ucf101'
+data_root: '/app/datasets/datasets/ucf101'
 train_dir: 'train'
 val_dir: 'val'
 test_dir: 'test'

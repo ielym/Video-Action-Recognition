@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import math
 from torch.cuda.amp import autocast as autocast, GradScaler
+import time
 
 from tqdm import tqdm, trange
 from fastvision.utils.checkpoints import SaveModel
@@ -81,18 +82,19 @@ class Fit():
 
             self.model.train()
             losses, metrics, group_lrs = self._run_epoch(epoch, self.train_loader, scaler, mode='train')
+
             train_losses.append(sum(losses) / len(losses))
             train_metrics.append(sum(metrics) / len(metrics))
             train_lrs.extend(group_lrs)
             print(f'Train Loss : {sum(losses) / len(losses)}, Train Metric : {sum(metrics) / len(metrics)}')
 
-            if self.val_loader:
-                with torch.no_grad():
-                    self.model.eval()
-                    losses, metrics, _ = self._run_epoch(epoch, self.val_loader, scaler, mode='val')
-                    val_losses.append(sum(losses))
-                    val_metrics.append(sum(metrics))
-                    print(f'Val Loss : {sum(losses) / len(losses)}, Val Metric : {sum(metrics) / len(metrics)}')
+            # if self.val_loader:
+            #     with torch.no_grad():
+            #         self.model.eval()
+            #         losses, metrics, _ = self._run_epoch(epoch, self.val_loader, scaler, mode='val')
+            #         val_losses.append(sum(losses))
+            #         val_metrics.append(sum(metrics))
+            #         print(f'Val Loss : {sum(losses) / len(losses)}, Val Metric : {sum(metrics) / len(metrics)}')
 
             ckpt = {
                 'model': self.model,
@@ -100,7 +102,6 @@ class Fit():
             }
 
             SaveModel(ckpt, 'last.pth', weights_only=True)
-
 
     def _run_epoch(self, epoch, data_loader, scaler, mode='train'):
         assert data_loader, 'data_loader can not be None'
@@ -111,6 +112,9 @@ class Fit():
 
         with tqdm(data_loader) as t:
             for batch_idx, (frames, labels) in enumerate(t):
+                self.scheduler.step()
+
+                # stime = time.time()
                 if self.device.type == 'cuda':
                     frames = frames.cuda(non_blocking=True)
                     labels = labels.cuda(non_blocking=True)
@@ -129,7 +133,6 @@ class Fit():
                     scaler.update()
                     # loss.backward()
                     # self.optimizer.step()
-                    self.scheduler.step()
 
                 t.set_description(f"{mode} Epoch {epoch + 1}")
                 t.set_postfix(batch=batch_idx + 1, loss=loss.item(), metric=metric.item(), lrs=[group['lr'] for group in self.optimizer.state_dict()['param_groups']])
@@ -138,5 +141,7 @@ class Fit():
                 tota_metric.append(metric.item())
 
                 group_lrs.append([group['lr'] for group in self.optimizer.state_dict()['param_groups']])
+
+                # print('model : ', time.time() - stime)
 
         return total_loss, tota_metric, group_lrs
