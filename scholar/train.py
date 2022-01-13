@@ -17,26 +17,20 @@ from utils.fit import Fit
 def dataloader_fn(args, device):
     data_dict = yaml.safe_load(open(args.data_yaml, 'r'))
 
-    device_idx = args.local_rank
+    device_id = args.local_rank
     shards_dict = eval(os.environ['FASTVISON_SHARDS'])
-    shard_idx = shards_dict[device_idx]
+    shard_id = shards_dict[device_id]
     num_shards = len(shards_dict.keys())
-    print('||' * 50)
-    print(shard_idx, num_shards, shards_dict)
-    print('||' * 50)
-
 
     num_classes = data_dict['num_classes']
     category_names = data_dict['categories']
     assert (num_classes == len(category_names)), f"num_classes {num_classes} must equal len(category_names) {len(category_names)}"
 
     train_dir = os.path.join(data_dict['data_root'], data_dict['train_dir'])
-    train_loader = create_dataloader(prefix='train', data_dir=train_dir, batch_size=args.batch_size, frames=args.frames, input_size=args.input_size, num_workers=args.num_workers, device=device, cache=args.cache_dir, use_cache=args.use_data_cache, DistributedDataParallel=args.DistributedDataParallel, shuffle=True, pin_memory=True, drop_last=False)
+    train_loader = create_dataloader(prefix='train', data_dir=train_dir, batch_size=args.batch_size, frames=args.frames, input_size=args.input_size, device_id=device_id, shard_id=shard_id, num_shards=num_shards, num_workers=args.num_workers, cache=args.cache_dir)
 
     val_dir = os.path.join(data_dict['data_root'], data_dict['val_dir'])
-    val_loader = create_dataloader(prefix='val', data_dir=val_dir, batch_size=args.batch_size, frames=args.frames, input_size=args.input_size, num_workers=args.num_workers, device=device, cache=args.cache_dir, use_cache=args.use_data_cache, DistributedDataParallel=args.DistributedDataParallel, shuffle=True, pin_memory=True, drop_last=False)
-
-    # show_dataset(prefix='train', data_dir=train_dir, category_names=category_names, num_workers=num_workers, cache=cache, use_cache=use_cache)
+    val_loader = create_dataloader(prefix='val', data_dir=val_dir, batch_size=args.batch_size, frames=args.frames, input_size=args.input_size, device_id=device_id, shard_id=shard_id, num_shards=num_shards, num_workers=args.num_workers, cache=args.cache_dir)
 
     args.num_classes = num_classes
     args.category_names = category_names

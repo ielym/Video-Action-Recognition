@@ -3,15 +3,22 @@ import nvidia.dali.fn as fn
 from nvidia.dali.plugin.pytorch import DALIGenericIterator
 import nvidia.dali.types as types
 
-import numpy as np
-import cv2
-import time
 import os
-from glob import glob
 
 @pipeline_def
-def video_pipe(file_list, sequence_length, stride, shard_id, num_shards, initial_fill):
+def video_pipe(file_list, sequence_length, input_size, stride, shard_id, num_shards, initial_fill):
     videos, labels = fn.readers.video(device="gpu", file_list=file_list, sequence_length=sequence_length, pad_sequences=True, stride=stride, shard_id=shard_id, num_shards=num_shards, random_shuffle=True, initial_fill=initial_fill)
+    videos = fn.resize(videos, resize_shorter=256, interp_type=types.INTERP_LINEAR)
+    videos = fn.crop_mirror_normalize(
+        videos,
+        crop_pos_x=fn.random.uniform(range=(0.0, 1.0)),
+        crop_pos_y=fn.random.uniform(range=(0.0, 1.0)),
+        mirror=fn.random.coin_flip(),
+        dtype=types.FLOAT,
+        crop=(input_size, input_size),
+        mean=[0., 0., 0.],
+        std=[255., 255., 255.],
+    )
     return videos, labels
 
 def trans_fastvision_2_dali(label_path, data_dir, cache_dir):
@@ -27,31 +34,24 @@ def trans_fastvision_2_dali(label_path, data_dir, cache_dir):
     return os.path.join(cache_dir, os.path.basename(label_path))
 
 
-def create_dataloader(prefix, data_dir, batch_size, frames, input_size, device, num_workers=0, cache='./cache'):
+def create_dataloader(prefix, data_dir, batch_size, frames, input_size, device_id, shard_id, num_shards, num_workers=1, cache='./cache'):
 
-    sequence_length = 8
-    initial_prefetch_size = 16
     stride = 8
-    shard_id = 0
+    initial_fill = batch_size * 2
 
     fastvision_labels_path = os.path.join(data_dir, 'lables.txt')
     file_list_path = trans_fastvision_2_dali(fastvision_labels_path, data_dir, cache_dir=cache)
 
-    pipe = video_pipe(batch_size=batch_size, num_threads=2, device_id=0, filenames=video_files)
-    pipe = video_pipe(file_list=file_list_path, sequence_length=sequence_length, stride=stride, shard_id=shard_id, seed=123456)
+    pipe = video_pipe(file_list=file_list_path, sequence_length=frames, input_size=input_size, stride=stride, shard_id=shard_id, num_shards=num_shards, initial_fill=initial_fill, num_threads=num_workers, device_id=device_id)
 
-    dali_iter = DALIGenericIterator(pipelines=pipe, output_map=['frames', 'labels'])
+    dataloader = DALIGenericIterator(pipelines=pipe, output_map=['frames', 'labels'])
 
-    stime = time.time()
-    for batch_idx, data in enumerate(dali_iter):
-        frames = data[0]["frames"]
-        labels = data[0]["labels"]
-        # print(frames.size(), labels.size(), labels)
-        print("batch {}, frames size: {}, labels : {}, device : {}".format(batch_idx, frames.size(), labels.cpu().numpy().tolist(), frames.device))
-    dali_iter.reset()
-    print(time.time() - stime)
+    # for batch_idx, data in enumerate(dataloader):
+    #     frames = data[0]["frames"]
+    #     labels = data[0]["labels"]
+    #     print("batch {}, frames size: {}, labels : {}, device : {}".format(batch_idx, frames.size(), labels.cpu().numpy().tolist(), frames.device))
+    # dataloader.reset()
 
-
-    return dali_iter
+    return dataloader
 
 
