@@ -17,6 +17,10 @@ from utils.fit import Fit
 def dataloader_fn(args, device):
     data_dict = yaml.safe_load(open(args.data_yaml, 'r'))
 
+    shard_idx = args.local_rank
+    shards_dict = eval(os.environ['FASTVISON_SHARDS'])
+    print(shard_idx, shards_dict, type(shard_idx), type(shards_dict))
+
     num_classes = data_dict['num_classes']
     category_names = data_dict['categories']
     assert (num_classes == len(category_names)), f"num_classes {num_classes} must equal len(category_names) {len(category_names)}"
