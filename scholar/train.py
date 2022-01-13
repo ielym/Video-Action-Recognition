@@ -17,9 +17,14 @@ from utils.fit import Fit
 def dataloader_fn(args, device):
     data_dict = yaml.safe_load(open(args.data_yaml, 'r'))
 
-    shard_idx = args.local_rank
+    device_idx = args.local_rank
     shards_dict = eval(os.environ['FASTVISON_SHARDS'])
-    print(shard_idx, shards_dict, type(shard_idx), type(shards_dict))
+    shard_idx = shards_dict[device_idx]
+    num_shards = len(shards_dict.keys())
+    print('||' * 50)
+    print(shard_idx, num_shards)
+    print('||' * 50)
+
 
     num_classes = data_dict['num_classes']
     category_names = data_dict['categories']
