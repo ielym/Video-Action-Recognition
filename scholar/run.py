@@ -36,7 +36,7 @@ parser.add_argument('--input_size', default=224, type=int, help='')
 parser.add_argument('--num_workers', default=0.2, type=float, help='')
 
 # Train
-parser.add_argument('--device', default='0, 1, 2', type=str, help='cpu, or 0, 1 or 0')
+parser.add_argument('--device', default=[0, 1, 2], type=list, help='[] empty for CPU, or a list like [0] or [0, 2, 3] for GPU')
 parser.add_argument('--epochs', default=30, type=int, help='')
 parser.add_argument('--initial_lr', default=1e-4, type=float, help='')
 parser.add_argument('--last_lr', default=1e-7, type=float, help='')
