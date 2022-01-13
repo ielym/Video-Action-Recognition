@@ -47,16 +47,15 @@ def load_samples(data_dir, prefix, cache_dir, num_works):
     pool.join()
     pbar.close()
 
-    if cache:
-        with open(os.path.join(cache, f'{prefix}.txt'), 'w') as f:
-            f.write(str(ret_samples))
-        print(f'Save {prefix} data to cache {cache} {prefix}.txt')
+    with open(os.path.join(cache_dir, f'{prefix}.txt'), 'w') as f:
+        f.write(str(ret_samples))
+    print(f'Save {prefix} data to cache {cache_dir} {prefix}.txt')
 
     return ret_samples
 
 def save_2_npy(video_path):
     cap = cv2.VideoCapture(video_path)
-    sampling_frames = consecutiveSampling(cap, frames=64)
+    sampling_frames = randomClipSampling(cap, clips=8, frames_per_clip=1)
 
     frames = []
     for frame in sampling_frames:
@@ -67,7 +66,7 @@ def save_2_npy(video_path):
         frames.append(np.expand_dims(frame, 0))
     frames = np.concatenate(frames, 0).astype(np.uint8)  # (16, 112, 112, 3)
 
-    cache_path = os.path.join('./cache/cache_data', f'{os.path.basename(video_path)}.npy')
+    cache_path = os.path.join('../cache/cache_data', f'{os.path.basename(video_path)}.npy')
     np.save(cache_path, frames)
 
 def preprocess(samples, num_works):
@@ -88,13 +87,15 @@ def preprocess(samples, num_works):
     pbar.close()
 
 if __name__ == '__main__':
-    data_dir = r'/app/datasets/kinetics400/train'
+    data_dir = r'/app/datasets/ucf101/train'
     cache_dir = r'../cache'
-    num_works = 48
+    num_works = 32
 
     if not os.path.exists('../cache/cache_data'):
         os.makedirs('../cache/cache_data')
 
+    # with open(os.path.join(cache_dir, r'train.txt'), 'r') as f:
+    #     samples = eval(f.read())
     samples = load_samples(data_dir, 'train', cache_dir, num_works)
     preprocess(samples, num_works)
 

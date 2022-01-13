@@ -22,10 +22,10 @@ def dataloader_fn(args, device):
     assert (num_classes == len(category_names)), f"num_classes {num_classes} must equal len(category_names) {len(category_names)}"
 
     train_dir = os.path.join(data_dict['data_root'], data_dict['train_dir'])
-    train_loader = create_dataloader(prefix='train', data_dir=train_dir, batch_size=args.batch_size, frames=args.frames, input_size=args.input_size, num_workers=args.num_workers, device=device, cache=args.cache_dir, use_cache=args.use_data_cache, shuffle=True, pin_memory=True, drop_last=False)
+    train_loader = create_dataloader(prefix='train', data_dir=train_dir, batch_size=args.batch_size, frames=args.frames, input_size=args.input_size, num_workers=args.num_workers, device=device, cache=args.cache_dir, use_cache=args.use_data_cache, DistributedDataParallel=args.DistributedDataParallel, shuffle=True, pin_memory=True, drop_last=False)
 
     val_dir = os.path.join(data_dict['data_root'], data_dict['val_dir'])
-    val_loader = create_dataloader(prefix='val', data_dir=val_dir, batch_size=args.batch_size, frames=args.frames, input_size=args.input_size, num_workers=args.num_workers, device=device, cache=args.cache_dir, use_cache=args.use_data_cache, shuffle=True, pin_memory=True, drop_last=False)
+    val_loader = create_dataloader(prefix='val', data_dir=val_dir, batch_size=args.batch_size, frames=args.frames, input_size=args.input_size, num_workers=args.num_workers, device=device, cache=args.cache_dir, use_cache=args.use_data_cache, DistributedDataParallel=args.DistributedDataParallel, shuffle=True, pin_memory=True, drop_last=False)
 
     # show_dataset(prefix='train', data_dir=train_dir, category_names=category_names, num_workers=num_workers, cache=cache, use_cache=use_cache)
 
@@ -55,9 +55,13 @@ def model_fn(args, device):
         print('Model : using cuda')
         model = model.cuda()
 
-    if device.type == 'cuda' and args.DataParallel:
+    if device.type == 'cuda' and args.DataParallel and not args.DistributedDataParallel:
         print('Model : using DataParallel')
         model = nn.DataParallel(model)
+
+    if device.type == 'cuda' and args.DistributedDataParallel:
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank], output_device=args.local_rank)
+        print('Model : using DistributedDataParallel')
 
     if device.type == 'cuda' and args.DistributedDataParallel and args.SyncBatchNorm:
         print('Model : using SyncBatchNorm')
