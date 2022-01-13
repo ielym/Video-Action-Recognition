@@ -22,7 +22,7 @@ def dataloader_fn(args, device):
     shard_idx = shards_dict[device_idx]
     num_shards = len(shards_dict.keys())
     print('||' * 50)
-    print(shard_idx, num_shards)
+    print(shard_idx, num_shards, shards_dict)
     print('||' * 50)
 
 
