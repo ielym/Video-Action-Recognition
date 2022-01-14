@@ -68,6 +68,68 @@ class Fit():
         plt.plot(record_lrs, record_losses)
         plt.savefig('./loss.png')
 
+    def trainIters(self):
+
+        # ------------- tqdm with multiprocessing -------------
+        pbar = tqdm(total=len(range(self.start_epoch, self.end_epoch)))
+        update_tqdm = lambda *args: pbar.update()
+        # -----------------------------------------------------
+
+        train_losses = []
+        train_metrics = []
+        train_lrs = []
+
+        val_losses = []
+        val_metrics = []
+
+        scaler = GradScaler()
+
+        self.model.train()
+        for iter_idx, data in enumerate(self.train_loader):
+            iter_idx += self.start_epoch
+            if iter_idx > self.end_epoch:
+                break
+
+            frames = data[0]["frames"].float() / 255.
+            labels = data[0]["labels"].squeeze(1)
+
+            self.optimizer.zero_grad()
+
+            with autocast():
+                pred = self.model(frames)
+                metric = self.metric(pred, labels)
+                loss = self.loss(pred, labels)
+
+            scaler.scale(loss).backward()
+            scaler.step(self.optimizer)
+            scaler.update()
+            # loss.backward()
+            # self.optimizer.step()
+            self.scheduler.step()
+
+            pbar.set_description(f"Train Epoch {iter_idx + 1}")
+            pbar.set_postfix(iter=iter_idx + 1, loss=loss.item(), metric=metric.item(), lrs=[group['lr'] for group in self.optimizer.state_dict()['param_groups']])
+            update_tqdm()
+
+            train_losses.append(loss.item())
+            train_metrics.append(metric.item())
+            train_lrs.extend([group['lr'] for group in self.optimizer.state_dict()['param_groups']])
+
+            # if self.val_loader:
+            #     with torch.no_grad():
+            #         self.model.eval()
+            #         losses, metrics, _ = self._run_epoch(epoch, self.val_loader, scaler, mode='val')
+            #         val_losses.append(sum(losses))
+            #         val_metrics.append(sum(metrics))
+            #         print(f'Val Loss : {sum(losses) / len(losses)}, Val Metric : {sum(metrics) / len(metrics)}')
+
+            if (iter_idx + 1) % 1000 == 0:
+                ckpt = {
+                    'model': self.model,
+                    'optimizer': self.optimizer.state_dict()
+                }
+                SaveModel(ckpt, 'last.pth', weights_only=True)
+
     def trainEpoches(self):
         train_losses = []
         train_metrics = []
@@ -104,7 +166,7 @@ class Fit():
             SaveModel(ckpt, 'last.pth', weights_only=True)
 
     def _run_epoch(self, epoch, data_loader, scaler, mode='train'):
-        assert data_loader, 'data_loader can not be None'
+        assert data_loader != None, 'data_loader can not be None'
 
         total_loss = []
         tota_metric = []

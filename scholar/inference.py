@@ -2,14 +2,17 @@ import os
 from glob import glob
 import yaml
 import cv2
+import argparse
+import tqdm
 
 import numpy as np
 import torch
 import torch.nn as nn
 
+from fastvision.utils.device import set_device
 from fastvision.utils.checkpoints import LoadStatedict
-from fastvision.videoRecognition.models import c3d, c3d_bn
-from fastvision.datasets.common import randomClipSampling
+from fastvision.videoRecognition.models import resnet50_3d
+from fastvision.datasets.common import randomClipSampling, consecutiveSampling
 from fastvision.datasets.common.augmentation import Augmentation, HorizontalFlip, VerticalFlip, Normalization, Resize, Padding, CenterCrop, RandomCrop, BGR2RGB
 
 def dataloader_fn(args):
@@ -33,27 +36,14 @@ def dataloader_fn(args):
 
 def model_fn(args, device):
 
-    # model = c3d(in_channels=args.in_channels, num_classes=args.num_classes, including_top=True)
-    model = c3d_bn(in_channels=args.in_channels, num_classes=args.num_classes, including_top=True)
+    model = resnet50_3d(in_channels=args.in_channels, num_classes=args.num_classes)
 
     if args.inference_weights:
         model = LoadStatedict(model=model, weights=args.inference_weights, device=device, strict=True)
 
-    if device.type == 'cuda':
-        print('Model : using cuda')
-        model = model.cuda()
+    model = model.cuda()
 
-    if device.type == 'cuda' and args.DataParallel:
-        print('Model : using DataParallel')
-        model = nn.DataParallel(model)
-
-    if device.type == 'cuda' and args.DistributedDataParallel and args.SyncBatchNorm:
-        print('Model : using SyncBatchNorm')
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-
-
-
-    model.half().float()
+    # model.half().float()
     return model
 
 def preprocess(video_path, input_size):
@@ -66,16 +56,16 @@ def preprocess(video_path, input_size):
         input_width = input_size[1]
 
     augmentation = Augmentation([
-        Resize(size=(128, 171), p=1.0),
+        Resize(size=256, resize_by='shorter', p=1.0),
         RandomCrop(size=(input_height, input_width), p=1.0),
         # HorizontalFlip(p=0.5),
         BGR2RGB(p=1.0),
-        Normalization(p=1.0),
     ], mode='classification')
 
     cap = cv2.VideoCapture(video_path)
 
-    ori_frames = randomClipSampling(cap, clips=16, frames_per_clip=1)
+    ori_frames = randomClipSampling(cap, clips=8, frames_per_clip=1)
+    # ori_frames = consecutiveSampling(cap, frames=8)
 
     frames = []
     augmentation.lock_prob()
@@ -95,8 +85,17 @@ def preprocess(video_path, input_size):
 @torch.no_grad()
 def Inference(args, device):
 
-    file_names = dataloader_fn(args)
+    # ===================================== Process Labels
+    with open(r'S:\datasets\ucf101\train\labels.txt', 'r') as f:
+        lines = f.readlines()
+    labels = {}
+    for line in lines:
+        line = line.strip()
+        category_name, category_id = line.split()
+        labels[category_name] = int(category_id)
 
+
+    file_names = dataloader_fn(args)
     category_id_name_map = {k : v for k, v in enumerate(args.category_names)}
 
 
@@ -104,25 +103,58 @@ def Inference(args, device):
     model = model_fn(args, device=device)
     model.eval()
 
+    np.random.seed(0)
     np.random.shuffle(file_names)
-    for file_name in file_names:
 
-        frames = preprocess(file_name, args.input_size)
+    total_sample = 0
+    match = 0
+    for file_name in tqdm.tqdm(file_names):
 
-        results = model(frames.unsqueeze(0))
+        frames = preprocess(file_name, args.input_size) / 255.
+
+        results = model(frames.unsqueeze(0).cuda())
         scores = torch.softmax(results, dim=1).cpu().numpy()
 
         category = np.argmax(scores, axis=1)[0]
         score = scores[..., category][0]
 
-        cap = cv2.VideoCapture(file_name)
-        ret, frame = cap.read()
-        while ret:
-            cv2.putText(frame, category_id_name_map[category], (30, 50), cv2.FONT_HERSHEY_COMPLEX, 1.0, (0, 0, 255), 2)
+        base_name = os.path.basename(file_name)
+        gt_category_id = labels[base_name]
 
-            cv2.imshow('img', frame)
-            cv2.waitKey(10)
-            ret, frame = cap.read()
+        total_sample += 1
+        if category == gt_category_id:
+            match += 1
 
+    print(match / total_sample)
 
+        # cap = cv2.VideoCapture(file_name)
+        # ret, frame = cap.read()
+        # while ret:
+        #     cv2.putText(frame, category_id_name_map[category], (30, 50), cv2.FONT_HERSHEY_COMPLEX, 1.0, (0, 0, 255), 2)
+        #     cv2.putText(frame, category_id_name_map[gt_category_id], (30, 80), cv2.FONT_HERSHEY_COMPLEX, 1.0, (0, 255, 0), 2)
+        #
+        #     cv2.imshow('img', frame)
+        #     cv2.waitKey(10)
+        #     ret, frame = cap.read()
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description='FastVision')
+
+    parser.add_argument('--in_channels', default=3, type=int, help='')
+    parser.add_argument('--num_classes', default=101, type=int)
+    parser.add_argument('--device', default=[0], type=list, help='[] empty for CPU, or a list like [0] or [0, 2, 3] for GPU')
+    parser.add_argument('--inference_weights', default=r'S:\last.pth', type=str, help='')
+    parser.add_argument('--data_yaml', default=r'./data/ucf101.yaml', type=str, help='')
+    parser.add_argument('--data_path', default=r'S:\datasets\ucf101\train\videos', type=str, help='absolute path of a video or a folder')
+    parser.add_argument('--input_size', default=224, type=int, help='')
+
+    args, unknown = parser.parse_known_args()
+
+    device = set_device(args.device)
+
+    # pretrained = torch.load(args.inference_weights)
+    # print(pretrained.keys())
+
+    Inference(args, device)
 

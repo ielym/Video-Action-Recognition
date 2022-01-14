@@ -19,7 +19,7 @@ from fastvision.utils.device import set_device
 from train import Train
 from inference import Inference
 
-# python -m torch.distributed.launch --nproc_per_node=4 run.py
+# CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nproc_per_node=2 run.py
 
 torch.distributed.init_process_group(backend="nccl")
 parser = argparse.ArgumentParser(description='FastVision')
@@ -29,15 +29,15 @@ parser.add_argument('--local_rank', default=-1, type=int)
 
 # Data generation
 parser.add_argument('--data_yaml', default=r'./data/ucf101.yaml', type=str, help='')
-parser.add_argument('--batch_size', default=8, help='')
+parser.add_argument('--batch_size', default=32, help='')
 parser.add_argument('--in_channels', default=3, type=int, help='')
 parser.add_argument('--frames', default=8, type=int, help='input frames')
 parser.add_argument('--input_size', default=224, type=int, help='')
-parser.add_argument('--num_workers', default=0.2, type=float, help='')
+parser.add_argument('--num_workers', default=0.4, type=float, help='')
 
 # Train
-parser.add_argument('--device', default=[2, 3], type=list, help='[] empty for CPU, or a list like [0] or [0, 2, 3] for GPU')
-parser.add_argument('--epochs', default=30, type=int, help='')
+parser.add_argument('--device', default=[0, 1], type=list, help='[] empty for CPU, or a list like [0] or [0, 2, 3] for GPU')
+parser.add_argument('--epochs', default=40000, type=int, help='')
 parser.add_argument('--initial_lr', default=1e-4, type=float, help='')
 parser.add_argument('--last_lr', default=1e-7, type=float, help='')
 parser.add_argument('--weight_decay', default=5e-4, type=float, help='')

@@ -18,27 +18,30 @@ def dataloader_fn(args, device):
     data_dict = yaml.safe_load(open(args.data_yaml, 'r'))
     # print('===========', args.local_rank, device, torch.cuda.current_device())
     device_id = args.local_rank
-    shards_dict = eval(os.environ['FASTVISON_SHARDS'])
+    # shards_dict = eval(os.environ['FASTVISON_SHARDS'])
     # shard_id = shards_dict[device_id]
     shard_id = args.local_rank
-    num_shards = len(shards_dict.keys())
+    # num_shards = len(shards_dict.keys())
+    num_shards = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
 
     num_classes = data_dict['num_classes']
     category_names = data_dict['categories']
     assert (num_classes == len(category_names)), f"num_classes {num_classes} must equal len(category_names) {len(category_names)}"
-    print(f'local_rank : {args.local_rank}, device_id : {device_id}, shard_id : {shard_id}, {torch.cuda.current_device()}')
-    input('||' * 50)
+    # print(f'local_rank : {args.local_rank}, device_id : {device_id}, shard_id : {shard_id}, {torch.cuda.current_device()}, num_shards : {num_shards}')
 
     train_dir = os.path.join(data_dict['data_root'], data_dict['train_dir'])
     train_loader = create_dataloader(prefix='train', data_dir=train_dir, batch_size=args.batch_size, frames=args.frames, input_size=args.input_size, device_id=device_id, shard_id=shard_id, num_shards=num_shards, num_workers=args.num_workers, cache=args.cache_dir)
 
-    val_dir = os.path.join(data_dict['data_root'], data_dict['val_dir'])
-    val_loader = create_dataloader(prefix='val', data_dir=val_dir, batch_size=args.batch_size, frames=args.frames, input_size=args.input_size, device_id=device_id, shard_id=shard_id, num_shards=num_shards, num_workers=args.num_workers, cache=args.cache_dir)
+    # val_dir = os.path.join(data_dict['data_root'], data_dict['test_dir'])
+    # val_loader = create_dataloader(prefix='test', data_dir=val_dir, batch_size=args.batch_size, frames=args.frames, input_size=args.input_size, device_id=device_id, shard_id=shard_id, num_shards=num_shards, num_workers=args.num_workers, cache=args.cache_dir)
 
     args.num_classes = num_classes
     args.category_names = category_names
 
-    return train_loader, val_loader, data_dict
+    # print(len(train_loader), len(val_loader))
+    # input('||' * 50)
+
+    return train_loader, None, data_dict
 
 def loss_fn(device):
     loss = CrossEntropyLoss(reduction='mean')
@@ -95,7 +98,7 @@ def Train(args, device):
 
     # ======================= Optimizer ============================
     optimizer = optimizer_fn(model=model, lr=1, weight_decay=args.weight_decay) # here lr have to set to 1
-    scheduler = CosineLR(optimizer=optimizer, steps=args.epochs * len(train_loader), initial_lr=args.initial_lr, last_lr=args.last_lr)
+    scheduler = CosineLR(optimizer=optimizer, steps=args.epochs, initial_lr=args.initial_lr, last_lr=args.last_lr)
     # scheduler = ExponentialLR(optimizer=optimizer, steps=1 * len(train_loader), initial_lr=2e-6, last_lr=1e-4)
 
     est = Fit(
@@ -116,4 +119,4 @@ def Train(args, device):
 
     # est.find_lr()
 
-    est.trainEpoches()
+    est.trainIters()
