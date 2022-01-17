@@ -68,13 +68,13 @@ def model_fn(args, device):
         print('Model : using DataParallel')
         model = nn.DataParallel(model)
 
-    if device.type == 'cuda' and args.DistributedDataParallel:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank], output_device=args.local_rank)
-        print('Model : using DistributedDataParallel')
-
     if device.type == 'cuda' and args.DistributedDataParallel and args.SyncBatchNorm:
         print('Model : using SyncBatchNorm')
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
+
+    if device.type == 'cuda' and args.DistributedDataParallel:
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank], output_device=args.local_rank)
+        print('Model : using DistributedDataParallel')
 
     model = SqueezeModel(model, 'all', True)
     model = SqueezeModel(model, ['classifier'], True)
