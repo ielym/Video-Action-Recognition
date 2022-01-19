@@ -6,24 +6,42 @@ import nvidia.dali.types as types
 import os
 
 @pipeline_def()
-def video_pipe(file_list, sequence_length, input_size, stride, shard_id, num_shards, initial_fill):
-    videos, labels = fn.readers.video_resize(
+def video_pipe(file_list, sequence_length, input_size, stride, step, shard_id, num_shards, initial_fill):
+    # videos, labels = fn.readers.video_resize(
+    #     device="gpu",
+    #     resize_shorter=256,
+    #     interp_type=types.INTERP_LINEAR,
+    #     file_list=file_list,
+    #     sequence_length=sequence_length,
+    #     pad_sequences=True,
+    #     stride=stride,
+    #     step=stride,
+    #     shard_id=shard_id,
+    #     num_shards=num_shards,
+    #     random_shuffle=True,
+    #     initial_fill=initial_fill,
+    #     file_list_include_preceding_frame=False,
+    #     dtype=types.UINT8,
+    #     prefetch_queue_depth=4,
+    #     minibatch_size=32,
+    #     # seed=0,
+    # )
+
+    videos, labels = fn.readers.video(
         device="gpu",
-        resize_shorter=256,
-        interp_type=types.INTERP_LINEAR,
         file_list=file_list,
         sequence_length=sequence_length,
-        pad_sequences=True,
+        pad_sequences=False,
         stride=stride,
-        step=stride,
+        step=step,
         shard_id=shard_id,
         num_shards=num_shards,
         random_shuffle=True,
+        read_ahead = True,
         initial_fill=initial_fill,
         file_list_include_preceding_frame=False,
         dtype=types.UINT8,
-        prefetch_queue_depth=4,
-        minibatch_size=32,
+        prefetch_queue_depth=128,
         # seed=0,
     )
 
@@ -49,7 +67,7 @@ def trans_fastvision_2_dali(prefix, label_path, data_dir, cache_dir):
 
 def create_dataloader(prefix, data_dir, batch_size, frames, input_size, device_id, shard_id, num_shards, num_workers=1, cache='./cache'):
 
-    stride = 8
+    stride = 1
     initial_fill = batch_size * 4
 
     fastvision_labels_path = os.path.join(data_dir, 'labels.txt')
@@ -59,7 +77,8 @@ def create_dataloader(prefix, data_dir, batch_size, frames, input_size, device_i
         file_list=file_list_path,
         sequence_length=frames,
         input_size=input_size,
-        stride=stride,
+        stride=1,
+        step = 1,
         shard_id=shard_id,
         num_shards=num_shards,
         initial_fill=initial_fill,
@@ -78,8 +97,8 @@ def create_dataloader(prefix, data_dir, batch_size, frames, input_size, device_i
     #     frames = data[0]["frames"]
     #     labels = data[0]["labels"]
     #     print("batch {}, frames size: {}, labels : {}, device : {}".format(batch_idx, frames.size(), labels.cpu().numpy().tolist()[0][0], frames.device))
-    #     alredy.add(labels.cpu().numpy().tolist()[0][0])
-    #     print(len(alredy))
+        # alredy.add(labels.cpu().numpy().tolist()[0][0])
+        # print(len(alredy))
         # np.save('ttt.npy', frames.cpu().numpy()[0, ...])
         # input('---')
 

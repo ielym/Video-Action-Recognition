@@ -1,5 +1,5 @@
 data_root: '/app/datasets/kinetics400'
-train_dir: 'train'
+train_dir: 'train5s'
 val_dir: 'val'
 test_dir: 'test'
 num_classes: 400
