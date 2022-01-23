@@ -77,8 +77,8 @@ def create_dataloader(prefix, data_dir, batch_size, frames, input_size, device_i
         file_list=file_list_path,
         sequence_length=frames,
         input_size=input_size,
-        stride=1,
-        step = 1,
+        stride=16,
+        step = 16 * frames,
         shard_id=shard_id,
         num_shards=num_shards,
         initial_fill=initial_fill,
@@ -97,10 +97,9 @@ def create_dataloader(prefix, data_dir, batch_size, frames, input_size, device_i
     #     frames = data[0]["frames"]
     #     labels = data[0]["labels"]
     #     print("batch {}, frames size: {}, labels : {}, device : {}".format(batch_idx, frames.size(), labels.cpu().numpy().tolist()[0][0], frames.device))
-        # alredy.add(labels.cpu().numpy().tolist()[0][0])
-        # print(len(alredy))
-        # np.save('ttt.npy', frames.cpu().numpy()[0, ...])
-        # input('---')
+    #     alredy.add(labels.cpu().numpy().tolist()[0][0])
+    #     print(len(alredy))
+    #     np.save('ttt.npy', frames.cpu().numpy()[0, ...])
 
     return dataloader
 

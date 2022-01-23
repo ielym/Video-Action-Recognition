@@ -1,5 +1,5 @@
-data_root: '/app/datasets/ucf101'
-train_dir: 'train8f'
+data_root: '/app/datasets1/ucf101'
+train_dir: 'train'
 val_dir: 'val'
 test_dir: 'test'
 num_classes: 101

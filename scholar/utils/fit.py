@@ -82,7 +82,7 @@ class Fit():
         val_losses = []
         val_metrics = []
 
-        scaler = GradScaler()
+        # scaler = GradScaler()
 
         self.model.train()
         for iter_idx, data in enumerate(self.train_loader):
@@ -95,17 +95,17 @@ class Fit():
 
             self.optimizer.zero_grad()
 
-            with autocast():
-                pred = self.model(frames)
-                metric = self.metric(pred, labels)
-                loss = self.loss(pred, labels)
+            # with autocast():
+            pred = self.model(frames)
+            metric = self.metric(pred, labels)
+            loss = self.loss(pred, labels)
 
-            scaler.scale(loss).backward()
-            scaler.step(self.optimizer)
-            scaler.update()
-            # loss.backward()
-            # self.optimizer.step()
-            self.scheduler.step()
+            # scaler.scale(loss).backward()
+            # scaler.step(self.optimizer)
+            # scaler.update()
+            loss.backward()
+            self.optimizer.step()
+            # self.scheduler.step()
 
             pbar.set_description(f"Train Epoch {iter_idx + 1}")
             pbar.set_postfix(iter=iter_idx + 1, loss=loss.item(), metric=metric.item(), lrs=[group['lr'] for group in self.optimizer.state_dict()['param_groups']])
